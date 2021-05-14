@@ -157,9 +157,13 @@ def response_counter(status):
             counter = json.load(f)
     else:
         counter = {"200" : 0,
+                   "200rate": 0,
                    "403" : 0,
+                   "403rate": 0,
                    "503" : 0,
+                   "503rate": 0,
                    "999" : 0,
+                   "999rate": 0,
                    "turbo": 0} 
 
     if status == 200:
@@ -172,6 +176,13 @@ def response_counter(status):
         counter["999"] += 1
     if status == 777:
         counter["turbo"] += 1
+
+    total = counter["200"] + counter["403"] + counter["503"] + counter["999"]
+
+    counter["200rate"] = f"{counter['200'] / total * 100:.2f}%"
+    counter["403rate"] = f"{counter['403'] / total * 100:.2f}%"
+    counter["503rate"] = f"{counter['503'] / total * 100:.2f}%"
+    counter["999rate"] = f"{counter['999'] / total * 100:.2f}%"
 
     with open(RESPONSE_COUNTER_PATH, "w") as f:
         json.dump(counter, f, indent=4)
