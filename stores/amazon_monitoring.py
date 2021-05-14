@@ -226,6 +226,8 @@ class AmazonMonitor(aiohttp.ClientSession):
         status, response_text = await self.aio_get(url=self.item.furl.url)
 
         # save_html_response(f"{self.item.id}_stock-check", status, response_text)
+        if status == 503:
+            log.warning(f"ASIN {self.item.id} returned HTML {status} using proxy {self.connector.proxy_url}")
 
         # do this after each request
         fail_counter = check_fail(status=status, fail_counter=fail_counter)
@@ -289,6 +291,9 @@ class AmazonMonitor(aiohttp.ClientSession):
             status, response_text = await self.aio_get(url=self.item.furl.url)
 
             # save_html_response(f"{self.item.id}_stock-check", status, response_text)
+            if status == 503:
+                log.warning(f"ASIN {self.item.id} returned HTML {status} using proxy {self.connector.proxy_url}")
+
             # do this after each request
             fail_counter = check_fail(status=status, fail_counter=fail_counter)
             if fail_counter == -1:
