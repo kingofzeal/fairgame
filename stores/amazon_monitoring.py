@@ -41,6 +41,7 @@ from utils.misc import (
     get_timestamp_filename,
     save_html_response,
     check_response,
+    response_counter,
 )
 
 from common.amazon_support import (
@@ -225,7 +226,8 @@ class AmazonMonitor(aiohttp.ClientSession):
         end_time = time.time() + delay
         status, response_text = await self.aio_get(url=self.item.furl.url)
 
-        # save_html_response(f"{self.item.id}_stock-check", status, response_text)
+        # save_html_response("stock-check", status, response_text)
+        response_counter(status)
         if status == 503:
             log.warning(f"ASIN {self.item.id} returned HTML {status} using proxy {self.connector.proxy_url}")
 
@@ -291,6 +293,7 @@ class AmazonMonitor(aiohttp.ClientSession):
             status, response_text = await self.aio_get(url=self.item.furl.url)
 
             # save_html_response(f"{self.item.id}_stock-check", status, response_text)
+            response_counter(status)
             if status == 503:
                 log.warning(f"ASIN {self.item.id} returned HTML {status} using proxy {self.connector.proxy_url}")
 
