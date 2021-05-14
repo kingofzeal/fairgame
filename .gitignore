@@ -24,3 +24,5 @@ logs/*.log*
 tags
 stores/store_data/item_cache.p
 Amazon_aio.bat
+
+html_saves/
