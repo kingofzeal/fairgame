@@ -228,7 +228,7 @@ class AmazonMonitor(aiohttp.ClientSession):
 
         # save_html_response("stock-check", status, response_text)
         response_counter(status)
-        if status == 503:
+        if status != 200:
             log.warning(f"ASIN {self.item.id} returned HTML {status} using proxy {self.connector.proxy_url}")
 
         # do this after each request
@@ -294,7 +294,7 @@ class AmazonMonitor(aiohttp.ClientSession):
 
             # save_html_response(f"{self.item.id}_stock-check", status, response_text)
             response_counter(status)
-            if status == 503:
+            if status != 200:
                 log.warning(f"ASIN {self.item.id} returned HTML {status} using proxy {self.connector.proxy_url}")
 
             # do this after each request
