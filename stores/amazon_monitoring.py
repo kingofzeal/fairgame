@@ -110,7 +110,7 @@ class ItemsHandler:
 
 class BadProxyCollector:
     @classmethod
-    def __init__(cls):
+    def load(cls):
         while True:
             cls.last_check = time.time()
             if os.path.exists(BAD_PROXIES_PATH):
@@ -127,26 +127,25 @@ class BadProxyCollector:
 
     @classmethod
     def record(cls, status, connector):
-        url = connector.proxy_url
+        url = str(connector.proxy_url)
 
         if status == 503 and url not in cls.collection:
-            cls.collection.setdefault(url, {"banned" : True})
+            cls.collection.update({url : {"banned" : True}})
         if status == 200 and url in cls.collection:
             cls.collection[url]["banned"] = False
 
             try:
                 unbanned_time = cls.collection[url]["unban_time"]
-                if time.time() - unbanned_time >= 6000:
+                if time.time() - unbanned_time >= 300:
                     del cls.collection[url]
             except KeyError:
                 cls.collection[url].update({"unban_time" : time.time()})
 
     @classmethod
-    async def save(cls):
+    def save(cls):
         if cls.timer() and cls.collection:
-            with await open(BAD_PROXIES_PATH, "w") as f:
+            with open(BAD_PROXIES_PATH, "w") as f:
                 json.dump(cls.collection, f, indent=4)
-        log.debug(str(cls))
 
     @classmethod
     def timer(cls):
@@ -154,19 +153,6 @@ class BadProxyCollector:
             return True
         return False
     
-    @classmethod
-    def __str__(cls):
-        if cls.collection:
-            string = "\n\n::Status of Proxies::\n\n"
-            for url, status in cls.collection.items():
-                url = url + "\n"
-                string += url
-                for query, content in status.items():
-                    state = str(query) + " : " + str(content) + "\n"
-                    string += state
-            return string
-        return "No proxies have been banned so far."
-
                 
 class AmazonMonitoringHandler(BaseStoreHandler):
     http_client = False
@@ -199,23 +185,29 @@ class AmazonMonitoringHandler(BaseStoreHandler):
         # Initialize the Session we'll use for stock checking
         log.debug("Initializing Monitoring Sessions")
         self.sessions_list: Optional[List[AmazonMonitor]] = []
-        for idx in range(len(self.proxies)):
-            connector = ProxyConnector.from_url(self.proxies[idx])
-            self.sessions_list.append(
-                AmazonMonitor(
-                    headers=HEADERS,
-                    amazon_config=self.amazon_config,
-                    connector=connector,
-                    delay=delay,
+
+        if self.proxies:
+            for idx in range(len(self.proxies)):
+                connector = ProxyConnector.from_url(self.proxies[idx])
+                self.sessions_list.append(
+                    AmazonMonitor(
+                        headers=HEADERS,
+                        amazon_config=self.amazon_config,
+                        connector=connector,
+                        delay=delay,
+                        issaver=False,
+                    )
                 )
-            )
-            self.sessions_list[idx].headers.update({"user-agent": ua.random})
+                self.sessions_list[idx].headers.update({"user-agent": ua.random})
+            self.sessions_list[-1].issaver = True
+
 
 class AmazonMonitor(aiohttp.ClientSession):
     def __init__(
         self,
         amazon_config: Dict,
         delay: float,
+        issaver: bool,
         *args,
         **kwargs,
     ):
@@ -224,6 +216,7 @@ class AmazonMonitor(aiohttp.ClientSession):
         self.check_count = 1
         self.amazon_config = amazon_config
         self.domain = urlparse(self.item.furl.url).netloc
+        self.issaver = issaver
 
         self.delay = delay
         if self.item.purchase_delay > 0:
@@ -248,6 +241,7 @@ class AmazonMonitor(aiohttp.ClientSession):
             delay=self.delay,
             connector=self.connector,
             headers=HEADERS,
+            issaver=self.issaver,
         )
         session.headers.update({"user-agent": UserAgent().random})
         log.debug("Sesssion Created")
@@ -259,7 +253,8 @@ class AmazonMonitor(aiohttp.ClientSession):
         # to be grabbed at end of while loop
 
         # log.debug(f"Monitoring Task Started for {self.item.id}")
-        collector = BadProxyCollector()
+        if self.issaver:
+            BadProxyCollector.load()
 
         fail_counter = 0  # Count sequential get fails
         delay = self.delay
@@ -267,7 +262,7 @@ class AmazonMonitor(aiohttp.ClientSession):
         status, response_text = await self.aio_get(url=self.item.furl.url)
 
         # save_html_response("stock-check", status, response_text)
-        collector.record(status, self.connector)
+        BadProxyCollector.record(status, self.connector)
         response_counter(status)
         if status != 200:
             log.warning(f"ASIN {self.item.id} returned HTML {status} using proxy {self.connector.proxy_url}")
@@ -334,11 +329,10 @@ class AmazonMonitor(aiohttp.ClientSession):
             status, response_text = await self.aio_get(url=self.item.furl.url)
 
             # save_html_response(f"{self.item.id}_stock-check", status, response_text)
-            collector.record(status, self.connector)
+            BadProxyCollector.record(status, self.connector)
             response_counter(status)
             if status != 200:
                 log.warning(f"ASIN {self.item.id} returned HTML {status} using proxy {self.connector.proxy_url}")
-
             # do this after each request
             fail_counter = check_fail(status=status, fail_counter=fail_counter)
             if fail_counter == -1:
@@ -348,7 +342,8 @@ class AmazonMonitor(aiohttp.ClientSession):
 
             self.check_count += 1
             self.next_item()
-            collector.save()
+            if self.issaver:
+                BadProxyCollector.save()
 
     async def aio_get(self, url):
         text = None
