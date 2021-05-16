@@ -233,9 +233,6 @@ class AmazonMonitor(aiohttp.ClientSession):
 
         # save_html_response("stock-check", status, response_text)
         BadProxyCollector.record(status, self.connector)
-        response_counter(status)
-        if status != 200:
-            log.warning(f"ASIN {self.item.id} returned HTML {status} using proxy {self.connector.proxy_url}")
 
         # do this after each request
         fail_counter = check_fail(status=status, fail_counter=fail_counter)
@@ -257,6 +254,11 @@ class AmazonMonitor(aiohttp.ClientSession):
                     log.debug("Captcha found during monitoring task")
                     # wait a second so it doesn't continuously hit captchas very quickly
                     # TODO: maybe track captcha hits so that it aborts after several?
+                    try:
+                        log.warning(f"{self.item.id} : {self.connector.proxy_url} : Captcha hit")
+                    except AttributeError:
+                        log.warning(f"{self.item.id} : Captcha hit")
+                        
                     await asyncio.sleep(1)
                     # get the next response after solving captcha and then continue to next loop iteration
                     status, response_text = await self.async_captcha_solve(
