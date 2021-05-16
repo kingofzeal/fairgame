@@ -304,12 +304,11 @@ class AmazonMonitor(aiohttp.ClientSession):
             # save_html_response(f"{self.item.id}_stock-check", status, response_text)
             BadProxyCollector.record(status, self.connector)
             response_counter(status)
-            if status != 200:
-                log.warning(f"ASIN {self.item.id} returned HTML {status} using proxy {self.connector.proxy_url}")
+            if status == 503:
                 try:
-                    log.debug(f":: 503 :: {self.proxy_url} :: Sleeping for 60 seconds.")
+                    log.warning(f":: 503 :: {self.connector.proxy_url} :: Sleeping for 60 seconds.")
                 except AttributeError: 
-                    log.debug(f":: 503 :: Sleeping for 60 seconds.")
+                    log.warning(f":: 503 :: Sleeping for 60 seconds.")
                 finally:
                     await asyncio.sleep(60)
             # do this after each request
