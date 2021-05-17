@@ -225,6 +225,15 @@ class BadProxyCollector:
         if time.time() - cls.last_save >= 60:
             return True
         return False
+
+    @classmethod
+    def bad_proxy_count(cls):
+        count = 0
+        for proxy in cls.collection:
+            if cls.collection[proxy]["banned"]:
+                count += 1
+        
+        return count
     
 class ResponseTracker:
     start_time = time.time()
@@ -260,6 +269,7 @@ class ResponseTracker:
     @classmethod
     def save(cls):
         if cls.timer() and cls.data:
+            cls.data["bad_proxies"] = BadProxyCollector.bad_proxy_count()
             log.debug("Saving tracking info...")
             with open(RESPONSE_COUNTER_PATH, "w") as f:
                 json.dump(cls.data, f, indent=4, sort_keys=True)
