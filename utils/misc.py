@@ -50,6 +50,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from utils.logger import log
 
 BAD_PROXIES_PATH = "config/bad_proxies.json"
+RESPONSE_COUNTER_PATH = "html_saves/response_counter.json"
 DEFAULT_MAX_TIMEOUT = 5
 
 
@@ -225,41 +226,63 @@ class BadProxyCollector:
             return True
         return False
     
-                
+class ResponseTracker:
 
-def response_counter(status):
-    RESPONSE_COUNTER_PATH = "html_saves/response_counter.json"
-    if os.path.exists(RESPONSE_COUNTER_PATH):
-        with open(RESPONSE_COUNTER_PATH, "r") as f:
-            counter = json.load(f)
-    else:
-        counter = {"200" : 0,
-                   "200rate": 0,
-                   "403" : 0,
-                   "403rate": 0,
-                   "503" : 0,
-                   "503rate": 0,
-                   "999" : 0,
-                   "999rate": 0,
-                   "turbo": 0} 
+    @classmethod
+    def load(cls):
+        cls.last_save = time.time()
+        while True:
+            if os.path.exists(RESPONSE_COUNTER_PATH):
+                try:
+                    with open(RESPONSE_COUNTER_PATH) as f:
+                        cls.data = json.load(f)
+                        log.info("Response tracking loaded")
+                        cls.is_loaded = True
+                        return None
+                except:
+                    log.info(f"{RESPONSE_COUNTER_PATH} can't be decoded and will be deleted.")
+                    os.remove(RESPONSE_COUNTER_PATH)
+            else:
+                cls.data = {
+                    "200": 0,
+                    "200rate": 0,
+                    "403" : 0,
+                    "403rate": 0,
+                    "503" : 0,
+                    "503rate": 0,
+                    "999" : 0,
+                    "999rate": 0,
+                    "turbo": 0,
+                    "total": 0
+                }
+                cls.is_loaded = True
+                return None
 
-    if status == 200:
-        counter["200"] += 1
-    if status == 403:
-        counter["403"] += 1
-    if status == 503:
-        counter["503"] += 1
-    if status == 999:
-        counter["999"] += 1
-    if status == 777:
-        counter["turbo"] += 1
+    @classmethod
+    def record(cls, status):
+        log.debug(f"Tracking response {status}")
+        
+        cls.data[str(status)] += 1
+        cls.data["total"] += 1
 
-    total = counter["200"] + counter["403"] + counter["503"] + counter["999"]
+        if status == "turbo":
+            return
 
-    counter["200rate"] = f"{counter['200'] / total * 100:.2f}%"
-    counter["403rate"] = f"{counter['403'] / total * 100:.2f}%"
-    counter["503rate"] = f"{counter['503'] / total * 100:.2f}%"
-    counter["999rate"] = f"{counter['999'] / total * 100:.2f}%"
+        cls.data["200rate"] = f"{cls.data['200'] / cls.data['total'] * 100:.2f}%"
+        cls.data["403rate"] = f"{cls.data['403'] / cls.data['total'] * 100:.2f}%"
+        cls.data["503rate"] = f"{cls.data['503'] / cls.data['total'] * 100:.2f}%"
+        cls.data["999rate"] = f"{cls.data['999'] / cls.data['total'] * 100:.2f}%"
 
-    with open(RESPONSE_COUNTER_PATH, "w") as f:
-        json.dump(counter, f, indent=4)
+    @classmethod
+    def save(cls):
+        if cls.timer() and cls.data:
+            log.debug("Saving tracking info...")
+            with open(RESPONSE_COUNTER_PATH, "w") as f:
+                json.dump(cls.data, f, indent=4, sort_keys=True)
+            cls.last_save = time.time()
+
+    @classmethod
+    def timer(cls):
+        if time.time() - cls.last_save >= 1:
+            return True
+        return False

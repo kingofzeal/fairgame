@@ -41,7 +41,7 @@ from utils.misc import (
     get_timestamp_filename,
     save_html_response,
     check_response,
-    response_counter,
+    ResponseTracker,
     UserAgentBook,
     ItemsHandler,
     BadProxyCollector,
@@ -225,6 +225,7 @@ class AmazonMonitor(aiohttp.ClientSession):
         # log.debug(f"Monitoring Task Started for {self.item.id}")
         if self.issaver:
             BadProxyCollector.load()
+            ResponseTracker.load()
 
         fail_counter = 0  # Count sequential get fails
         delay = self.delay
@@ -233,6 +234,7 @@ class AmazonMonitor(aiohttp.ClientSession):
 
         # save_html_response("stock-check", status, response_text)
         BadProxyCollector.record(status, self.connector)
+        ResponseTracker.record(status)
 
         # do this after each request
         fail_counter = check_fail(status=status, fail_counter=fail_counter)
@@ -305,7 +307,7 @@ class AmazonMonitor(aiohttp.ClientSession):
 
             # save_html_response(f"{self.item.id}_stock-check", status, response_text)
             BadProxyCollector.record(status, self.connector)
-            response_counter(status)
+            ResponseTracker.record(status)
             if status == 503:
                 try:
                     log.warning(f":: 503 :: {self.connector.proxy_url} :: Sleeping for 60 seconds.")
@@ -324,6 +326,7 @@ class AmazonMonitor(aiohttp.ClientSession):
             self.next_item()
             if self.issaver:
                 BadProxyCollector.save()
+            ResponseTracker.save()
 
     async def aio_get(self, url):
         text = None
