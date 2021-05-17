@@ -225,7 +225,6 @@ class AmazonMonitor(aiohttp.ClientSession):
         # log.debug(f"Monitoring Task Started for {self.item.id}")
         if self.issaver:
             BadProxyCollector.load()
-            ResponseTracker.load()
 
         fail_counter = 0  # Count sequential get fails
         delay = self.delay
@@ -315,6 +314,7 @@ class AmazonMonitor(aiohttp.ClientSession):
                     log.warning(f":: 503 :: Sleeping for 60 seconds.")
                 finally:
                     await asyncio.sleep(60)
+
             # do this after each request
             fail_counter = check_fail(status=status, fail_counter=fail_counter)
             if fail_counter == -1:

@@ -227,36 +227,19 @@ class BadProxyCollector:
         return False
     
 class ResponseTracker:
-
-    @classmethod
-    def load(cls):
-        cls.last_save = time.time()
-        while True:
-            if os.path.exists(RESPONSE_COUNTER_PATH):
-                try:
-                    with open(RESPONSE_COUNTER_PATH) as f:
-                        cls.data = json.load(f)
-                        log.info("Response tracking loaded")
-                        cls.is_loaded = True
-                        return None
-                except:
-                    log.info(f"{RESPONSE_COUNTER_PATH} can't be decoded and will be deleted.")
-                    os.remove(RESPONSE_COUNTER_PATH)
-            else:
-                cls.data = {
-                    "200": 0,
-                    "200rate": 0,
-                    "403" : 0,
-                    "403rate": 0,
-                    "503" : 0,
-                    "503rate": 0,
-                    "999" : 0,
-                    "999rate": 0,
-                    "turbo": 0,
-                    "total": 0
-                }
-                cls.is_loaded = True
-                return None
+    start_time = time.time()
+    last_save = time.time()
+    data = { "200": 0,
+             "200_rate": 0,
+             "403" : 0,
+             "403_rate": 0,
+             "503" : 0,
+             "503_rate": 0,
+             "999" : 0,
+             "999_rate": 0,
+             "turbo": 0,
+             "total": 0,
+             "req_rate": 0 }
 
     @classmethod
     def record(cls, status):
@@ -268,10 +251,10 @@ class ResponseTracker:
         if status == "turbo":
             return
 
-        cls.data["200rate"] = f"{cls.data['200'] / cls.data['total'] * 100:.2f}%"
-        cls.data["403rate"] = f"{cls.data['403'] / cls.data['total'] * 100:.2f}%"
-        cls.data["503rate"] = f"{cls.data['503'] / cls.data['total'] * 100:.2f}%"
-        cls.data["999rate"] = f"{cls.data['999'] / cls.data['total'] * 100:.2f}%"
+        cls.data["200_rate"] = f"{cls.data['200'] / cls.data['total'] * 100:.2f}%"
+        cls.data["403_rate"] = f"{cls.data['403'] / cls.data['total'] * 100:.2f}%"
+        cls.data["503_rate"] = f"{cls.data['503'] / cls.data['total'] * 100:.2f}%"
+        cls.data["999_rate"] = f"{cls.data['999'] / cls.data['total'] * 100:.2f}%"
 
     @classmethod
     def save(cls):
