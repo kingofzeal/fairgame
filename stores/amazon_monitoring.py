@@ -242,6 +242,7 @@ class AmazonMonitor(aiohttp.ClientSession):
             future.set_result(session)
             return
 
+        sleep_wait = 60
 
         # Loop will only exit if a qualified seller is returned.
         while True:
@@ -309,11 +310,14 @@ class AmazonMonitor(aiohttp.ClientSession):
             ResponseTracker.record(status)
             if status == 503:
                 try:
-                    log.warning(f":: 503 :: {self.connector.proxy_url} :: Sleeping for 60 seconds.")
+                    log.warning(f":: 503 :: {self.connector.proxy_url} :: Sleeping for {sleep_wait} seconds.")
                 except AttributeError: 
-                    log.warning(f":: 503 :: Sleeping for 60 seconds.")
+                    log.warning(f":: 503 :: Sleeping for {sleep_wait} seconds.")
                 finally:
-                    await asyncio.sleep(60)
+                    await asyncio.sleep(sleep_wait)
+                    sleep_wait += 60
+            else:
+                sleep_wait = 60
 
             # do this after each request
             fail_counter = check_fail(status=status, fail_counter=fail_counter)
