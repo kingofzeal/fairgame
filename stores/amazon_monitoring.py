@@ -236,11 +236,11 @@ class AmazonMonitor(aiohttp.ClientSession):
         ResponseTracker.record(status)
 
         # do this after each request
-        # fail_counter = check_fail(status=status, fail_counter=fail_counter)
-        # if fail_counter == -1:
-        #     session = self.fail_recreate()
-        #     future.set_result(session)
-        #     return
+        fail_counter = check_fail(status=status, fail_counter=fail_counter)
+        if fail_counter == -1:
+            session = self.fail_recreate()
+            future.set_result(session)
+            return
 
         sleep_wait = 60
 
@@ -268,11 +268,11 @@ class AmazonMonitor(aiohttp.ClientSession):
                     )
 
                     # do this after each request
-                    # fail_counter = check_fail(status=status, fail_counter=fail_counter)
-                    # if fail_counter == -1:
-                    #     session = self.fail_recreate()
-                    #     future.set_result(session)
-                    #     return
+                    fail_counter = check_fail(status=status, fail_counter=fail_counter)
+                    if fail_counter == -1:
+                        session = self.fail_recreate()
+                        future.set_result(session)
+                        return
 
                     await wait_timer(end_time)
                     end_time = time.time() + delay
@@ -326,11 +326,11 @@ class AmazonMonitor(aiohttp.ClientSession):
                         sleep_wait = 60
 
             # do this after each request
-            # fail_counter = check_fail(status=status, fail_counter=fail_counter)
-            # if fail_counter == -1:
-            #     session = self.fail_recreate()
-            #     future.set_result(session)
-            #     return
+            fail_counter = check_fail(status=status, fail_counter=fail_counter)
+            if fail_counter == -1:
+                session = self.fail_recreate()
+                future.set_result(session)
+                return
 
             self.check_count += 1
             self.next_item()
@@ -383,7 +383,7 @@ def check_fail(status, fail_counter, fail_list=None) -> int:
     n, where n is the current consecutive failure count"""
 
     if fail_list is None:
-        fail_list = [503, 999]
+        fail_list = [999]
     MAX_FAILS = 5
     n = fail_counter
     if status in fail_list:
