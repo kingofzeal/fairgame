@@ -317,7 +317,13 @@ class AmazonMonitor(aiohttp.ClientSession):
                     await asyncio.sleep(sleep_wait)
                     sleep_wait += 60
             else:
-                sleep_wait = 60
+                if sleep_wait > 60:
+                    try:                        
+                        log.info(f"{self.connector.proxy_url} has returned as {status}, resetting timeout")
+                    except:
+                        log.warning(f"resetting timeout")
+                    finally:
+                        sleep_wait = 60
 
             # do this after each request
             fail_counter = check_fail(status=status, fail_counter=fail_counter)
