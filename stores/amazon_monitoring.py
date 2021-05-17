@@ -236,11 +236,11 @@ class AmazonMonitor(aiohttp.ClientSession):
         ResponseTracker.record(status)
 
         # do this after each request
-        fail_counter = check_fail(status=status, fail_counter=fail_counter)
-        if fail_counter == -1:
-            session = self.fail_recreate()
-            future.set_result(session)
-            return
+        # fail_counter = check_fail(status=status, fail_counter=fail_counter)
+        # if fail_counter == -1:
+        #     session = self.fail_recreate()
+        #     future.set_result(session)
+        #     return
 
         sleep_wait = 60
 
@@ -326,11 +326,11 @@ class AmazonMonitor(aiohttp.ClientSession):
                         sleep_wait = 60
 
             # do this after each request
-            fail_counter = check_fail(status=status, fail_counter=fail_counter)
-            if fail_counter == -1:
-                session = self.fail_recreate()
-                future.set_result(session)
-                return
+            # fail_counter = check_fail(status=status, fail_counter=fail_counter)
+            # if fail_counter == -1:
+            #     session = self.fail_recreate()
+            #     future.set_result(session)
+            #     return
 
             self.check_count += 1
             self.next_item()
