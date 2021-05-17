@@ -268,11 +268,11 @@ class AmazonMonitor(aiohttp.ClientSession):
                     )
 
                     # do this after each request
-                    fail_counter = check_fail(status=status, fail_counter=fail_counter)
-                    if fail_counter == -1:
-                        session = self.fail_recreate()
-                        future.set_result(session)
-                        return
+                    # fail_counter = check_fail(status=status, fail_counter=fail_counter)
+                    # if fail_counter == -1:
+                    #     session = self.fail_recreate()
+                    #     future.set_result(session)
+                    #     return
 
                     await wait_timer(end_time)
                     end_time = time.time() + delay
