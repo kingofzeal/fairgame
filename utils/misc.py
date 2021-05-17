@@ -244,7 +244,7 @@ class ResponseTracker:
     @classmethod
     def record(cls, status):
         log.debug(f"Tracking response {status}")
-        
+
         cls.data[str(status)] += 1
         cls.data["total"] += 1
 
@@ -255,6 +255,7 @@ class ResponseTracker:
         cls.data["403_rate"] = f"{cls.data['403'] / cls.data['total'] * 100:.2f}%"
         cls.data["503_rate"] = f"{cls.data['503'] / cls.data['total'] * 100:.2f}%"
         cls.data["999_rate"] = f"{cls.data['999'] / cls.data['total'] * 100:.2f}%"
+        cls.data["req_rate"] = f"{cls.data['total'] / (time.time() - cls.start_time):.2f}/sec"
 
     @classmethod
     def save(cls):
