@@ -258,7 +258,11 @@ class ResponseTracker:
     def record(cls, status):
         log.debug(f"Tracking response {status}")
 
-        cls.data[str(status)] += 1
+        if str(status) in cls.data:
+            cls.data[str(status)] += 1
+        else: 
+            cls.data[str(status)] = 1
+
         cls.data["total"] += 1
 
         if status == "turbo":
