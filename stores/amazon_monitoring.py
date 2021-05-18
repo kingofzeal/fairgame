@@ -235,12 +235,12 @@ class AmazonMonitor(aiohttp.ClientSession):
             future.set_result(session)
             return
 
-        sleep_wait = 600
+        sleep_wait = 60
 
         # Loop will only exit if a qualified seller is returned.
         while True:
-            while ItemsHandler.check_last_access(self.item):
-                await asyncio.sleep(0.5)
+            while ItemsHandler.check_last_access(self.item, delay):
+                await asyncio.sleep(0.1)
 
             try:
                 log.info(f"{self.item.id} : {self.connector.proxy_url} : Stock Check Count = {self.check_count}")
@@ -323,15 +323,15 @@ class AmazonMonitor(aiohttp.ClientSession):
                         log.warning(f":: 503 :: Sleeping for {sleep_wait / 60:.0f} minutes.")
                     finally:
                         await asyncio.sleep(sleep_wait)
-                        sleep_wait += 600
+                        sleep_wait += 60
                 else:
-                    if sleep_wait > 600:
+                    if sleep_wait > 60:
                         try:
                             log.info(f"{self.connector.proxy_url} has returned as {status}, resetting timeout")
                         except:
                             log.warning(f"resetting timeout")
                         finally:
-                            sleep_wait = 600
+                            sleep_wait = 60
 
             ResponseTracker.save()
             if BadProxyCollector.timer():

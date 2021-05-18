@@ -182,10 +182,10 @@ class ItemsHandler:
         return next(cls.items)
 
     @classmethod
-    def check_last_access(cls, item):
+    def check_last_access(cls, item, delay):
         last_access = cls.item_ids[item.id]
         difference = time.time() - last_access
-        if difference < 2:
+        if difference < delay:
             return True
         cls.item_ids.update({item.id: time.time()})
         return False
@@ -273,11 +273,15 @@ class ResponseTracker:
     @classmethod
     def save(cls):
         if cls.timer() and cls.data:
-            cls.data["bad_proxies"] = BadProxyCollector.bad_proxy_count()
-            log.debug("Saving tracking info...")
-            with open(RESPONSE_COUNTER_PATH, "w") as f:
-                json.dump(cls.data, f, indent=4, sort_keys=True)
-            cls.last_save = time.time()
+            try:
+                cls.data["bad_proxies"] = BadProxyCollector.bad_proxy_count()
+                log.debug("Saving tracking info...")
+                with open(RESPONSE_COUNTER_PATH, "w") as f:
+                    json.dump(cls.data, f, indent=4, sort_keys=True)
+            except:
+                log.error("Error writing stats")
+            finally:
+                cls.last_save = time.time()
 
     @classmethod
     def timer(cls):
