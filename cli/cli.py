@@ -78,12 +78,15 @@ def notify_on_crash(func):
         except KeyboardInterrupt:
             pass
         except Exception as e:
-            log.debug(e)
+            log.error(e)
             notification_handler.send_notification(f"FairGame has crashed.")
             global tasks
             if tasks:
                 for task in tasks:
-                    task.cancel()
+                    try:
+                        task.cancel()
+                    except:
+                        pass
             raise
 
     return decorator
