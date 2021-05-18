@@ -235,7 +235,7 @@ class AmazonMonitor(aiohttp.ClientSession):
             future.set_result(session)
             return
 
-        sleep_wait = 60
+        sleep_wait = 600
 
         # Loop will only exit if a qualified seller is returned.
         while True:
@@ -243,11 +243,9 @@ class AmazonMonitor(aiohttp.ClientSession):
                 await asyncio.sleep(0.5)
 
             try:
-                log.debug(
-                    f"{self.item.id} : {self.connector.proxy_url} : Stock Check Count = {self.check_count}"
-                )
+                log.info(f"{self.item.id} : {self.connector.proxy_url} : Stock Check Count = {self.check_count}")
             except AttributeError:
-                log.debug(f"{self.item.id} : Stock Check Count = {self.check_count}")
+                log.info(f"{self.item.id} : Stock Check Count = {self.check_count}")
             tree = check_response(response_text)
             if tree is not None:
                 if captcha_element := has_captcha(tree):
@@ -320,21 +318,22 @@ class AmazonMonitor(aiohttp.ClientSession):
                 BadProxyCollector.record(status, self.connector)
                 if status == 503:
                     try:
-                        log.debug(f":: 503 :: {self.connector.proxy_url} :: Sleeping for {sleep_wait} seconds.")
+                        log.warning(f":: 503 :: {self.connector.proxy_url} :: Sleeping for {sleep_wait / 60:.0f} minutes.")
                     except AttributeError:
-                        log.debug(f":: 503 :: Sleeping for {sleep_wait} seconds.")
+                        log.warning(f":: 503 :: Sleeping for {sleep_wait / 60:.0f} minutes.")
                     finally:
                         await asyncio.sleep(sleep_wait)
-                        sleep_wait += 60
+                        sleep_wait += 600
                 else:
-                    if sleep_wait > 60:
+                    if sleep_wait > 600:
                         try:
                             log.info(f"{self.connector.proxy_url} has returned as {status}, resetting timeout")
                         except:
                             log.warning(f"resetting timeout")
                         finally:
-                            sleep_wait = 60
+                            sleep_wait = 600
 
+            ResponseTracker.save()
             if BadProxyCollector.timer():
                 await queue.put(BadProxyCollector.save())
 

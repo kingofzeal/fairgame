@@ -237,12 +237,7 @@ class BadProxyCollector:
 
     @classmethod
     def bad_proxy_count(cls):
-        count = 0
-        for proxy in cls.collection:
-            if cls.collection[proxy]["banned"]:
-                count += 1
-        
-        return count
+        return len(cls.collection["bad_proxies"])
     
 class ResponseTracker:
     start_time = time.time()
