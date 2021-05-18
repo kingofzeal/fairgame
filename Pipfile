@@ -40,7 +40,6 @@ dnspython = "*"
 fake-useragent = "*"
 pysocks = "*"
 aiohttp-proxy = "*"
-uvloop = "*"
 
 [requires]
 python_version = "3.8"
