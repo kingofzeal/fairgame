@@ -21,6 +21,7 @@ import fileinput
 import os
 import json
 import aiohttp
+import asyncio
 from typing import Optional, List
 from itertools import cycle
 
@@ -163,18 +164,31 @@ class UserAgentBook:
                 self.user_agents = json.load(f)
 
     def save(self):
-        with open(self.fp, 'w') as f:
+        with open(self.fp, "w") as f:
             json.dump(self.user_agents, f, indent=4)
 
 
 class ItemsHandler:
+    item_ids = {}
+
     @classmethod
     def create_items_pool(cls, item_list):
+        for item in item_list:
+            cls.item_ids.update({item.id: time.time()})
         cls.items = cycle(item_list)
 
     @classmethod
     def pop(cls):
         return next(cls.items)
+
+    @classmethod
+    def check_last_access(cls, item):
+        last_access = cls.item_ids[item.id]
+        difference = time.time() - last_access
+        if difference < 2:
+            return True
+        cls.item_ids.update({item.id: time.time()})
+        return False
 
 
 class BadProxyCollector:
@@ -185,39 +199,34 @@ class BadProxyCollector:
             if os.path.exists(BAD_PROXIES_PATH):
                 try:
                     with open(BAD_PROXIES_PATH) as f:
-                        cls.collection = json.load(f)
-                        return None
+                        temp = json.load(f)
+                        cls.collection = {"bad_proxies": set()}
+                        for proxy in temp["bad_proxies"]:
+                            cls.collection["bad_proxies"].add(proxy)
+                        break
                 except:
-                    log.debug(f"{BAD_PROXIES_PATH} can't be decoded and will be deleted.")
+                    log.debug(
+                        f"{BAD_PROXIES_PATH} can't be decoded and will be deleted."
+                    )
                     os.remove(BAD_PROXIES_PATH)
             else:
-                cls.collection = dict()
-                return None
+                cls.collection = {"bad_proxies": set()}
+                break
 
     @classmethod
     def record(cls, status, connector):
-        try:
-            url = str(connector.proxy_url)
-
-            if status == 503 and url not in cls.collection:
-                cls.collection.update({url : {"banned" : True}})
-            if status == 200 and url in cls.collection:
-                cls.collection[url]["banned"] = False
-
-                try:
-                    unbanned_time = cls.collection[url]["unban_time"]
-                    if time.time() - unbanned_time >= 300:
-                        del cls.collection[url]
-                except KeyError:
-                    cls.collection[url].update({"unban_time" : time.time()})
-        except AttributeError:
-            pass
+        url = str(connector.proxy_url)
+        if status == 503:
+            cls.collection["bad_proxies"].add(url)
+        if status == 200 and url in cls.collection["bad_proxies"]:
+            cls.collection["bad_proxies"].discard(url)
 
     @classmethod
     def save(cls):
         if cls.timer() and cls.collection:
             with open(BAD_PROXIES_PATH, "w") as f:
-                json.dump(cls.collection, f, indent=4, sort_keys=True)
+                temp = {"bad_proxies": list(cls.collection["bad_proxies"])}
+                json.dump(temp, f, indent=4)
             cls.last_save = time.time()
 
     @classmethod
