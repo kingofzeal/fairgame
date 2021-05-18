@@ -242,7 +242,8 @@ class BadProxyCollector:
 class ResponseTracker:
     start_time = time.time()
     last_save = time.time()
-    data = { "200": 0,
+    data = { "run_time": "",
+             "200": 0,
              "200_rate": 0,
              "403" : 0,
              "403_rate": 0,
@@ -265,6 +266,9 @@ class ResponseTracker:
 
         cls.data["total"] += 1
 
+        total_time = time.time() - cls.start_time
+        cls.data["run_time"] = time.strftime("%H:%M:%S", time.gmtime(total_time))
+
         if status == "turbo":
             return
 
@@ -272,7 +276,7 @@ class ResponseTracker:
         cls.data["403_rate"] = f"{cls.data['403'] / cls.data['total'] * 100:.2f}%"
         cls.data["503_rate"] = f"{cls.data['503'] / cls.data['total'] * 100:.2f}%"
         cls.data["999_rate"] = f"{cls.data['999'] / cls.data['total'] * 100:.2f}%"
-        cls.data["req_rate"] = f"{cls.data['total'] / (time.time() - cls.start_time):.2f}/sec"
+        cls.data["req_rate"] = f"{cls.data['total'] / total_time:.2f}/sec"
 
     @classmethod
     def save(cls):
