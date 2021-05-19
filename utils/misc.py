@@ -230,6 +230,12 @@ class ResponseTracker:
              "req_rate": 0 }
 
     @classmethod
+    def config(cls, delay, asin_count, proxy_count):
+        cls.delay = delay
+        cls.asin_count = asin_count
+        cls.proxy_count = proxy_count
+
+    @classmethod
     def record(cls, status):
         log.debug(f"Tracking response {status}")
 
@@ -256,12 +262,19 @@ class ResponseTracker:
     def save(cls):
         if cls.timer() and cls.data:
             try:
-                cls.data["bad_proxies"] = BadProxyCollector.bad_proxy_count()
+                bad_proxy_ct = BadProxyCollector.bad_proxy_count()
+                cls.data["bad_proxies"] = bad_proxy_ct
+
+                if cls.delay and cls.asin_count and cls.proxy_count:
+                    proxy_rate = ((cls.proxy_count - bad_proxy_ct) / cls.asin_count) * cls.delay
+                    cls.data["proxy_req_rate"] = f"{proxy_rate:.2f} sec/req"
+
                 log.debug("Saving tracking info...")
                 with open(RESPONSE_COUNTER_PATH, "w") as f:
                     json.dump(cls.data, f, indent=4, sort_keys=True)
-            except:
+            except Exception as e:
                 log.error("Error writing stats")
+                log.error(e)
             finally:
                 cls.last_save = time.time()
 

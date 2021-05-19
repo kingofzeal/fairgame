@@ -123,9 +123,11 @@ class AmazonMonitoringHandler(BaseStoreHandler):
         self.start_time = int(time.time())
         self.amazon_config = amazon_config
         ua = UserAgent()
-
+        
         self.proxies = get_proxies(path=PROXY_FILE_PATH)
         ItemsHandler.create_items_pool(self.item_list)
+
+        ResponseTracker.config(delay, len(item_list), len(self.proxies))
 
         # Initialize the Session we'll use for stock checking
         log.info("Initializing Monitoring Sessions")
