@@ -112,7 +112,7 @@ class AmazonMonitoringHandler(BaseStoreHandler):
         amazon_config,
         checkshipping=False,
     ) -> None:
-        log.debug("Initializing AmazonMonitoringHandler")
+        log.info("Initializing AmazonMonitoringHandler")
         super().__init__()
 
         self.shuffle = True
@@ -128,7 +128,7 @@ class AmazonMonitoringHandler(BaseStoreHandler):
         ItemsHandler.create_items_pool(self.item_list)
 
         # Initialize the Session we'll use for stock checking
-        log.debug("Initializing Monitoring Sessions")
+        log.info("Initializing Monitoring Sessions")
         self.sessions_list: Optional[List[AmazonMonitor]] = []
 
         if self.proxies:
@@ -190,7 +190,7 @@ class AmazonMonitor(aiohttp.ClientSession):
         if self.item.purchase_delay > 0:
             self.delay = 20
         self.block_purchase_until = time.time() + self.item.purchase_delay
-        log.debug("Initializing Monitoring Task")
+        log.info("Initializing Monitoring Task")
 
     def assign_config(self, azn_config):
         self.amazon_config = azn_config
@@ -283,17 +283,15 @@ class AmazonMonitor(aiohttp.ClientSession):
                         item=self.item, sellers=sellers
                     )
                     if qualified_seller:
-                        log.debug("Found an offer which meets criteria")
+                        log.info("Found an offer which meets criteria")
                         if time.time() > self.block_purchase_until:
                             await queue.put(qualified_seller)
-                            log.debug("Offer placed in queue")
-                            log.debug("Quitting monitoring task")
+                            log.info("Offer placed in queue")
+                            log.info("Quitting monitoring task")
                             future.set_result(None)
                             return None
                         else:
-                            log.debug(
-                                f"Purchasing is blocked until {self.block_purchase_until}. It is now {time.time()}."
-                            )
+                            log.info(f"Purchasing is blocked until {self.block_purchase_until}. It is now {time.time()}.")
             # failed to find seller. Wait a delay period then check again
             log.debug("No offers found which meet product criteria")
             await wait_timer(end_time)
@@ -464,21 +462,17 @@ def parse_offers(offers: html.HtmlElement, free_shipping_strings, atc_method=Fal
         merchant_id = ""
         # Try to find merchant ID with xpath
         try:
-            merchant_id = offer.xpath(
-                ".//input[@id='ftSelectMerchant' or @id='ddmSelectMerchant']"
-            )[0].value
+            merchant_id = offer.xpath(".//input[@id='ftSelectMerchant' or @id='ddmSelectMerchant']")[0].value
         except IndexError:
             # try to find merchant ID with regex
             try:
                 merchant_script = offer.xpath(".//script")[0].text.strip()
-                find_merchant_id = re.search(
-                    r"merchantId = \"(\w+?)\";", merchant_script
-                )
+                find_merchant_id = re.search(r"merchantId = \"(\w+?)\";", merchant_script)
                 if find_merchant_id:
                     merchant_id = find_merchant_id.group(1)
             except IndexError:
                 pass
-        log.info(f"merchant_id: {merchant_id}")
+        log.debug(f"merchant_id: {merchant_id}")
         # log failure to find merchant ID
         if not merchant_id:
             log.debug("No Merchant ID found")
@@ -490,17 +484,17 @@ def parse_offers(offers: html.HtmlElement, free_shipping_strings, atc_method=Fal
             log.debug("No price found for this offer, skipping")
             continue
         price = parse_price(price_text)
-        log.info(f"price: {price.amount_text}")
+        log.debug(f"price: {price.amount_text}")
         # Get Seller shipping cost
         shipping_cost = get_shipping_costs(offer, free_shipping_strings)
-        log.info(f"shipping: {shipping_cost.amount_text}")
+        log.debug(f"shipping: {shipping_cost.amount_text}")
         # Get Seller product condition
         condition_heading = offer.xpath(".//div[@id='aod-offer-heading']/h5")
         if condition_heading:
             condition = AmazonItemCondition.from_str(condition_heading[0].text.strip())
         else:
             condition = AmazonItemCondition.Unknown
-        log.info(f"condition: {str(condition)}")
+        log.debug(f"condition: {str(condition)}")
 
         # Get Seller item offerListingId
         offer_ids = offer.xpath(f".//input[@name='offeringID.1']")
@@ -509,7 +503,7 @@ def parse_offers(offers: html.HtmlElement, free_shipping_strings, atc_method=Fal
         else:
             log.error("No offer ID found for this offer, skipping")
             continue
-        log.info(f"offer id: {offer_id}")
+        log.debug(f"offer id: {offer_id}")
 
         # get info for ATC post
         # only use if doing ATC method
