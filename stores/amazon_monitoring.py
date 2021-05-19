@@ -298,7 +298,17 @@ class AmazonMonitor(aiohttp.ClientSession):
             log.debug("No offers found which meet product criteria")
             await wait_timer(end_time)
             end_time = time.time() + delay
-            status, response_text = await self.aio_get(url=self.item.furl.url)
+
+            try:
+                status, response_text = await self.aio_get(url=self.item.furl.url)
+            except Exception as e:
+                try:
+                    log.error(f"Error getting url: {self.item.furl.url} with proxy {self.connector.proxy_url}")
+                except AttributeError:
+                    log.error(f"Error getting url: {self.item.furl.url}")
+                finally:
+                    log.error(e)
+                    status = 998
 
             # save_html_response(f"{self.item.id}_stock-check", status, response_text)
             ResponseTracker.record(status)
@@ -381,7 +391,7 @@ def check_fail(status, fail_counter, fail_list=None) -> int:
     n, where n is the current consecutive failure count"""
 
     if fail_list is None:
-        fail_list = [999]
+        fail_list = [998, 999]
     MAX_FAILS = 5
     n = fail_counter
     if status in fail_list:
